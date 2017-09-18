@@ -1,11 +1,18 @@
 import lejos.geom.*;
-
+import java.util.Scanner;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import lejos.nxt.Button;
 
 public class B {
   static Graph mapa;
+  private static final byte ADD_POINT = 0; //adds waypoint to path
+	private static final byte TRAVEL_PATH = 1; // enables slave to execute the path
+	private static final byte STATUS = 2; // enquires about slave's position
+	private static final byte SET_START = 3; // set initial waypoint
+	private static final byte STOP = 4; // closes communication
 
   static final Line[] lines = {
     /* L-shape polygon */
@@ -66,8 +73,44 @@ public class B {
     return (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y);
   }
 
-  public static void main (String[] args) {
-    Graph mapa = criaGrafo();
+  public static int[] findPath (int[] spt, int w) {
+    int[] path_rev = new int[mapa.V()], path;
+    int j, i = 0, v;
+    for (v = w; v != spt[v]; v = spt[v]) {
+      path_rev[i] = v;
+      i++;
+    }
+    path = new int[i+1];
+    for (j = i; i >= 0; i--) {
+      path[i] = path_rev[j-i];
+    }
+    return path;
   }
 
+  public static void main (String[] args) {
+    MasterNav master = new MasterNav();
+    Scanner scan = new Scanner( System.in );
+    int[] path, spt;
+    int r, s, i, v;
+    float ret;
+    master.connect();
+    mapa = criaGrafo();
+    System.out.println("Qual o ponto inicial?");
+    r = scan.nextInt() - 1;
+    System.out.println("Qual a meta?");
+    s = scan.nextInt() - 1;
+    ret = master.sendCommand (SET_START, points[r].x/10, points[r].y/10);
+    spt = mapa.spt(r);
+    path = findPath(spt, s);
+    for (i = 1; i < path.length; i++) {
+      ret = master.sendCommand(ADD_POINT, points[path[i]].x/10, points[path[i]].y/10);
+      System.out.println("ponto: " + (path[i] + 1) + " X: " + points[path[i]].x/10 + " Y: " + points[path[i]].y/10 +" return: " + ret);
+    }
+    System.out.print("3... 2... 1... ");
+    ret = master.sendCommand(TRAVEL_PATH, -1, -1);
+    System.out.println("GO!");
+    Button.waitForAnyPress();
+    master.close();
+
+  }
 }

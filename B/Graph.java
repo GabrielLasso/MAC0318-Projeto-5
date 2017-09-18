@@ -72,7 +72,22 @@ public class Graph {
         }
       }
     }
+    return spt;
   }
+
+  public String toString() {
+    StringBuilder s = new StringBuilder();
+    s.append(V + " vertices, " + E + " edges " + "\n");
+    for (int v = 0; v < V; v++) {
+        s.append(v + ": ");
+        for (Edge e : adj.get(v)) {
+            int w = e.w;
+            s.append(w + " ");
+        }
+        s.append("\n");
+    }
+    return s.toString();
+}
 
   public class Edge {
     int v;
