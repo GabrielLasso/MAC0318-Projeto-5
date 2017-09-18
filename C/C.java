@@ -53,17 +53,5 @@ public class C {
   public static void main (String[] args) {
     int altura = 916, largura = 1182;
     mapa = criaMapa (altura, largura, 50);
-    System.out.println ("P5");
-    System.out.println (largura/50);
-    System.out.println (altura/50);
-    System.out.println (1);
-    for (int i = 0; i < altura/50; i++) {
-      for (int j = 0; j < largura/50; j++) {
-        if (mapa[i][j])
-          System.out.print((byte)0);
-        else
-          System.out.print((byte)1);
-      }
-    }
   }
 }
