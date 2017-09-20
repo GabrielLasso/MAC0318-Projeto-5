@@ -66,17 +66,20 @@ public class C {
       int y = pos.y();
       int dist = map[x][y];
       map[x][y] = dist + 1;
-      if (map[x+1][y] == -1) {
+      if (x+1 < mapa.lenght && map[x+1][y] == -1) {
         q.addFirst(new Pos(x+1, y));
       }
-      if (map[x-1][y] == -1) {
+      if (x > 0 && map[x-1][y] == -1) {
         q.addFirst(new Pos(x-1, y));
       }
-      if (map[x][y+1] == -1) {
+      if (y+1 < mapa[0].lenght && map[x][y+1] == -1) {
         q.addFirst(new Pos(x, y+1));
       }
-      if (map[x][y-1] == -1) {
+      if (y > 0 && map[x][y-1] == -1) {
         q.addFirst(new Pos(x, y-1));
+      }
+      if (Pos.isEqual (goal)) {
+        break;
       }
     }
   }
@@ -100,6 +103,9 @@ public class C {
     }
     public int y() {
       return y;
+    }
+    public boolean isEqual(Pos p) {
+      return p.x == x && p.y == y;
     }
   }
 }
