@@ -1,7 +1,7 @@
 import lejos.geom.*;
 import java.util.Scanner;
 import java.io.*;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.ArrayDeque;
@@ -51,14 +51,16 @@ public class C {
     return map;
   }
 
-  private static Pos[] findPath (Pos start, Pos goal) {
+  private static LinkedList<Pos> findPath (Pos start, Pos goal) {
     int[][] map = new int[mapa.lenght][mapa[0].lenght];
     ArrayDeque<Pos> q = new ArrayDeque<Pos>();
+    LinkedList<Pos> path;
     for (int i = 0; i < mapa.lenght; i++) {
       for (j = 0; j < mapa[0].lenght; j++) {
         map[i][j] = -1;
       }
     }
+    /* Busca em largura */
     q.addFirst(s);
     while (!q.isEmpty()) {
       Pos pos = q.removeLast();
@@ -82,14 +84,73 @@ public class C {
         break;
       }
     }
+    /* Acha o caminho */
+    if (!Pos.isEqual (goal)) {
+      // Não tem caminho
+      return null;
+    }
+    pos = goal;
+    while (!pos.isEqual(start)) {
+      dist = pos.goal;
+      path.addFirst(pos);
+      pos = bestNeighbor(pos);
+    }
+    return path;
   }
 
+  private static Pos bestNeighbor (Pos current) {
+    Pos[] neighbors new Pos[8];
+    Pos best;
+    int bestValue;
+    neighbors[0] = new Pos (current.x-1, current.y);
+    neighbors[1] = new Pos (current.x-1, current.y-1);
+    neighbors[2] = new Pos (current.x, current.y-1);
+    neighbors[3] = new Pos (current.x+1, current.y-1);
+    neighbors[4] = new Pos (current.x+1, current.y);
+    neighbors[5] = new Pos (current.x+1, current.y+1);
+    neighbors[6] = new Pos (current.x, current.y+1);
+    neighbors[7] = new Pos (current.x-1, current.y+1);
+    best = neighbors[0];
+    bestValue = map[neighbors[0].x][neighbors[0].y];
+    for (int i = 1; i < 8; i++) {
+      if (map[neighbors[i].x][neighbors[i].y] < bestValue) {
+        best = neighbors[i];
+        bestValue = map[neighbors[i].x][neighbors[i].y];
+      }
+    }
+    return best;
+  }
 
   public static void main (String[] args) {
-    int altura = 916, largura = 1182;
-    Pos[] path;
-    mapa = criaMapa (altura, largura, 50);
-    System.out.println("" + (altura/cel_side) + largura/cel_side + mapa.lenght + mapa[0].lenght);
+    int altura = 916, largura = 1182, cel_side = 50, x, y;
+    MasterNav master = new MasterNav();
+    master.connect();
+    LinkedList<Pos> path;
+    Pos start, goal;
+    Scanner scan = new Scanner( System.in );
+    master.connect();
+    mapa = criaMapa (altura, largura, cel_side);
+
+    System.out.println("Qual a posição X inicial (em mm)?");
+    x = scan.nextInt() / cel_side;
+    System.out.println("Qual a posição Y inicial (em mm)?");
+    y = scan.nextInt() / cel_side;
+    start = new Pos (x, y);
+    System.out.println("Qual a posição X final (em mm)?");
+    x = scan.nextInt() / cel_side;
+    System.out.println("Qual a posição Y final (em mm)?");
+    y = scan.nextInt() / cel_side;
+    goal = new Pos (x, y);
+
+    master.sendCommand (SET_START, start.x/10, start.y/10);
+
+    path = findPath(start, goal);
+    while (!path.isEmpty()) {
+      Pos pos = path.removeFirst();
+      ret = master.sendCommand(ADD_POINT, pos.x()/10, pos.y()/10);
+    }
+    ret = master.sendCommand(TRAVEL_PATH, -1, -1);
+    master.close();
   }
 
   public class Pos {
