@@ -4,7 +4,8 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import lejos.nxt.Button;
+import java.util.ArrayDeque;
+// import lejos.nxt.Button;
 
 public class C {
   static boolean[][] mapa;
@@ -50,8 +51,55 @@ public class C {
     return map;
   }
 
+  private static Pos[] findPath (Pos start, Pos goal) {
+    int[][] map = new int[mapa.lenght][mapa[0].lenght];
+    ArrayDeque<Pos> q = new ArrayDeque<Pos>();
+    for (int i = 0; i < mapa.lenght; i++) {
+      for (j = 0; j < mapa[0].lenght; j++) {
+        map[i][j] = -1;
+      }
+    }
+    q.addFirst(s);
+    while (!q.isEmpty()) {
+      Pos pos = q.removeLast();
+      int x = pos.x();
+      int y = pos.y();
+      int dist = map[x][y];
+      map[x][y] = dist + 1;
+      if (map[x+1][y] == -1) {
+        q.addFirst(new Pos(x+1, y));
+      }
+      if (map[x-1][y] == -1) {
+        q.addFirst(new Pos(x-1, y));
+      }
+      if (map[x][y+1] == -1) {
+        q.addFirst(new Pos(x, y+1));
+      }
+      if (map[x][y-1] == -1) {
+        q.addFirst(new Pos(x, y-1));
+      }
+    }
+  }
+
+
   public static void main (String[] args) {
     int altura = 916, largura = 1182;
+    Pos[] path;
     mapa = criaMapa (altura, largura, 50);
+    System.out.println("" + (altura/cel_side) + largura/cel_side + mapa.lenght + mapa[0].lenght);
+  }
+
+  public class Pos {
+    private int x, y;
+    public Pos (int x, int y) {
+      this.x = x;
+      this.y = y;
+    }
+    public int x() {
+      return x;
+    }
+    public int y() {
+      return y;
+    }
   }
 }
