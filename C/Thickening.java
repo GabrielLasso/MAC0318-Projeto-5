@@ -5,15 +5,16 @@ import java.util.LinkedList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.ArrayDeque;
-// import lejos.nxt.Button;
+import lejos.nxt.Button;
+// Igual a frente de onda, só muda a criação do mapa
 
-public class C {
+public class Thickening {
   static boolean[][] mapa;
   private static final byte ADD_POINT = 0; //adds waypoint to path
-	private static final byte TRAVEL_PATH = 1; // enables slave to execute the path
-	private static final byte STATUS = 2; // enquires about slave's position
-	private static final byte SET_START = 3; // set initial waypoint
-	private static final byte STOP = 4; // closes communication
+  private static final byte TRAVEL_PATH = 1; // enables slave to execute the path
+  private static final byte STATUS = 2; // enquires about slave's position
+  private static final byte SET_START = 3; // set initial waypoint
+  private static final byte STOP = 4; // closes communication
 
   static final Line[] lines = {
     /* L-shape polygon */
@@ -35,11 +36,11 @@ public class C {
     new Line(480,525,335,345)
   };
 
-  private static boolean[][] criaMapa (int altura, int largura, int cel_side) {
+  private static boolean[][] criaMapa (int altura, int largura, int cel_side, int dilatacao) {
     boolean[][] map = new boolean[altura/cel_side][largura/cel_side];
     for (int i = 0; i < altura/cel_side; i++) {
       for (int j = 0; j < largura/cel_side; j++) {
-        Rectangle rect = new Rectangle (j*cel_side, i*cel_side, cel_side, cel_side);
+        Rectangle rect = new Rectangle (j*cel_side - dilatacao, i*cel_side - dilatacao, cel_side 2*dilatacao+ , cel_side + 2*dilatacao);
         map[i][j] = true;
         for (Line l : lines) {
           if (l.intersects(rect)) {
@@ -61,7 +62,7 @@ public class C {
       }
     }
     /* Busca em largura */
-    q.addFirst(s);
+    q.addFirst(start);
     while (!q.isEmpty()) {
       Pos pos = q.removeLast();
       int x = pos.x();
@@ -122,14 +123,23 @@ public class C {
   }
 
   public static void main (String[] args) {
-    int altura = 916, largura = 1182, cel_side = 50, x, y;
+    int altura = 916, largura = 1182, cel_side = 50, dilatacao, x, y;
     MasterNav master = new MasterNav();
     master.connect();
     LinkedList<Pos> path;
     Pos start, goal;
     Scanner scan = new Scanner( System.in );
     master.connect();
-    mapa = criaMapa (altura, largura, cel_side);
+
+    System.out.println("Qual a largura do mapa (em mm)?");
+    largura = scan.nextInt();
+    System.out.println("Qual a altura (em mm)?");
+    altura = scan.nextInt();
+    System.out.println("Qual o lado de cada célula de ocupação (em mm)?");
+    cel_side = scan.nextInt();
+    System.out.println("Qual a dilatação (em mm)?");
+    dilatacao = scan.nextInt();
+    mapa = criaMapa (altura, largura, cel_side, dilatacao);
 
     System.out.println("Qual a posição X inicial (em mm)?");
     x = scan.nextInt() / cel_side;
@@ -147,26 +157,9 @@ public class C {
     path = findPath(start, goal);
     while (!path.isEmpty()) {
       Pos pos = path.removeFirst();
-      ret = master.sendCommand(ADD_POINT, pos.x()/10, pos.y()/10);
+      ret = master.sendCommand(ADD_POINT, pos.x()/10f, pos.y()/10f);
     }
     ret = master.sendCommand(TRAVEL_PATH, -1, -1);
     master.close();
-  }
-
-  public class Pos {
-    private int x, y;
-    public Pos (int x, int y) {
-      this.x = x;
-      this.y = y;
-    }
-    public int x() {
-      return x;
-    }
-    public int y() {
-      return y;
-    }
-    public boolean isEqual(Pos p) {
-      return p.x == x && p.y == y;
-    }
   }
 }

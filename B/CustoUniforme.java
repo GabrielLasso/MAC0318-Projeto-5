@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import lejos.nxt.Button;
 
-public class B {
+public class CustoUniforme {
   static Graph mapa;
   private static final byte ADD_POINT = 0; //adds waypoint to path
 	private static final byte TRAVEL_PATH = 1; // enables slave to execute the path
