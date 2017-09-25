@@ -6,16 +6,16 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.ArrayDeque;
 import lejos.nxt.Button;
-// Igual ao FrenteDeOnda, só muda a criação do mapa.
+// Igual ao FrenteDeOnda, só muda a criação do mapa
 
 public class Linearizacao {
-  static boolean[][] mapa;
+  static boolean[][] passable;
   private static final byte ADD_POINT = 0; //adds waypoint to path
 	private static final byte TRAVEL_PATH = 1; // enables slave to execute the path
 	private static final byte STATUS = 2; // enquires about slave's position
 	private static final byte SET_START = 3; // set initial waypoint
 	private static final byte STOP = 4; // closes communication
-  static int altura = 916, largura = 1182, cel_side = 50, x, y, dilatacao;
+  static int altura = 916, largura = 1182, cel_side = 50, dilatacao, x, y;
 
   static final Line[] lines = {
     /* L-shape polygon */
@@ -37,7 +37,7 @@ public class Linearizacao {
     new Line(480,525,335,345)
   };
 
-  private static boolean[][] criaMapa (int altura, int largura, int cel_side, int dilatacao) {
+  private static boolean[][] criamapa (int altura, int largura, int cel_side, int dilatacao) {
     boolean[][] map = new boolean[altura/cel_side][largura/cel_side];
     for (int i = 0; i < altura/cel_side; i++) {
       for (int j = 0; j < largura/cel_side; j++) {
@@ -54,40 +54,52 @@ public class Linearizacao {
   }
 
   private static LinkedList<Pos> findPath (Pos start, Pos goal) {
-    int[][] map = new int[mapa.length][mapa[0].length];
+    int[][] map = new int[passable.length][passable[0].length];
     ArrayDeque<Pos> q = new ArrayDeque<Pos>();
-    LinkedList<Pos> path = null;
+    LinkedList<Pos> path = new LinkedList<Pos>();
     Pos pos = null;
     int x, y, dist;
-    for (int i = 0; i < mapa.length; i++) {
-      for (int j = 0; j < mapa[0].length; j++) {
+    if (!passable[start.x()][start.y()]) return null;
+    for (int i = 0; i < passable.length; i++) {
+      for (int j = 0; j < passable[0].length; j++) {
         map[i][j] = -1;
       }
     }
     /* Busca em largura */
     q.addFirst(start);
+    map[start.x()][start.y()] = 0;
+    System.out.println("" + start.x() + ' ' + start.y());
     while (!q.isEmpty()) {
       pos = q.removeLast();
       x = pos.x();
       y = pos.y();
       dist = map[x][y];
-      map[x][y] = dist + 1;
-      if (x+1 < mapa.length && map[x+1][y] == -1) {
+      if (x+1 < passable.length && map[x+1][y] == -1 && passable[x+1][y]) {
+        map[x+1][y] = dist + 1;
         q.addFirst(new Pos(x+1, y));
       }
-      if (x > 0 && map[x-1][y] == -1) {
+      if (x > 0 && map[x-1][y] == -1 && passable[x-1][y]) {
+        map[x-1][y] = dist + 1;
         q.addFirst(new Pos(x-1, y));
       }
-      if (y+1 < mapa[0].length && map[x][y+1] == -1) {
+      if (y+1 < passable[0].length && map[x][y+1] == -1 && passable[x][y+1]) {
+        map[x][y+1] = dist + 1;
         q.addFirst(new Pos(x, y+1));
       }
-      if (y > 0 && map[x][y-1] == -1) {
+      if (y > 0 && map[x][y-1] == -1 && passable[x][y-1]) {
+        map[x][y-1] = dist + 1;
         q.addFirst(new Pos(x, y-1));
       }
       if (pos.isEqual (goal)) {
         break;
       }
     }
+    // for (int i = 0; i < passable.length; i++){
+    //   for (int j = 0; j < passable[0].length; j++) {
+    //     System.out.print ("\t"+map[i][j]);
+    //   }
+    //   System.out.println();
+    // }
     /* Acha o caminho */
     if (!pos.isEqual (goal)) {
       // Não tem caminho
@@ -114,11 +126,14 @@ public class Linearizacao {
     neighbors[6] = new Pos (current.x(), current.y()+1);
     neighbors[7] = new Pos (current.x()-1, current.y()+1);
     best = neighbors[0];
-    bestValue = map[neighbors[0].x()][neighbors[0].y()];
-    for (int i = 1; i < 8; i++) {
-      if (map[neighbors[i].x()][neighbors[i].y()] < bestValue) {
-        best = neighbors[i];
-        bestValue = map[neighbors[i].x()][neighbors[i].y()];
+    bestValue = map[current.x()][current.y()];
+    for (int i = 0; i < 8; i++) {
+      if (neighbors[i].x() >= 0 && neighbors[i].y() >= 0) {
+        int neighborvalue = map[neighbors[i].x()][neighbors[i].y()];
+        if (neighborvalue > -1 && neighborvalue < bestValue) {
+          best = neighbors[i];
+          bestValue = neighborvalue;
+        }
       }
     }
     return best;
@@ -126,7 +141,7 @@ public class Linearizacao {
 
   private static LinkedList<Pos> lineariza (LinkedList<Pos> path) {
     Pos p, q, old_q = null;
-    LinkedList<Pos> linearPath = null;
+    LinkedList<Pos> linearPath = new LinkedList<Pos>();
     boolean intercepta = false;
     p = path.removeFirst();
     linearPath.addLast(p);
@@ -156,7 +171,6 @@ public class Linearizacao {
 
   public static void main (String[] args) {
     MasterNav master = new MasterNav();
-    master.connect();
     LinkedList<Pos> path, linearPath;
     Pos start, goal;
     Scanner scan = new Scanner( System.in );
@@ -171,8 +185,7 @@ public class Linearizacao {
     cel_side = scan.nextInt();
     System.out.println("Qual a dilatação (em mm)?");
     dilatacao = scan.nextInt();
-    mapa = criaMapa (altura, largura, cel_side, dilatacao);
-
+    passable = criamapa (altura, largura, cel_side, dilatacao);
 
     System.out.println("Qual a posição X inicial (em mm)?");
     x = scan.nextInt() / cel_side;
@@ -188,12 +201,15 @@ public class Linearizacao {
     master.sendCommand (SET_START, start.x()/10, start.y()/10);
 
     path = findPath(start, goal);
-    linearPath = lineariza (path);
-    while (!linearPath.isEmpty()) {
-      Pos pos = linearPath.removeFirst();
-      ret = master.sendCommand(ADD_POINT, pos.x()/10f, pos.y()/10f);
+    if (path != null) {
+      linearPath = lineariza (path);
+      while (!linearPath.isEmpty()) {
+        Pos pos = path.removeFirst();
+        ret = master.sendCommand(ADD_POINT, pos.x()/10f, pos.y()/10f);
+      }
+      ret = master.sendCommand(TRAVEL_PATH, -1, -1);
+      master.close();
     }
-    ret = master.sendCommand(TRAVEL_PATH, -1, -1);
-    master.close();
+
   }
 }
