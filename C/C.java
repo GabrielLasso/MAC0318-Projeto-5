@@ -6,15 +6,19 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.ArrayDeque;
 import lejos.nxt.Button;
-// Igual ao FrenteDeOnda, só muda a criação do mapa
 
-public class Thickening {
+public class FrenteDeOnda {
+
+  static final boolean LINEARIZA = false;
+  static final boolean THICKENING = true;
+
   static boolean[][] passable;
   private static final byte ADD_POINT = 0; //adds waypoint to path
 	private static final byte TRAVEL_PATH = 1; // enables slave to execute the path
 	private static final byte STATUS = 2; // enquires about slave's position
 	private static final byte SET_START = 3; // set initial waypoint
 	private static final byte STOP = 4; // closes communication
+  static int altura = 916, largura = 1182, cel_side = 50, x, y, dilatacao = 0;
 
   static final Line[] lines = {
     /* L-shape polygon */
@@ -36,11 +40,13 @@ public class Thickening {
     new Line(480,525,335,345)
   };
 
-  private static boolean[][] criamapa (int altura, int largura, int cel_side, int dilatacao) {
-    boolean[][] map = new boolean[altura/cel_side][largura/cel_side];
-    for (int i = 0; i < altura/cel_side; i++) {
-      for (int j = 0; j < largura/cel_side; j++) {
-        Rectangle rect = new Rectangle (j*cel_side - dilatacao, i*cel_side - dilatacao, cel_side + 2*dilatacao, cel_side + 2*dilatacao);
+  private static boolean[][] criamapa () {
+    int height = (int) Math.ceil((float)altura/(float)cel_side);
+    int width = (int)Math.ceil((float)largura/(float)cel_side);
+    boolean[][] map = new boolean[width][height];
+    for (int i = 0; i < width; i++) {
+      for (int j = 0; j < height; j++) {
+        Rectangle rect = new Rectangle (i*cel_side - dilatacao, j*cel_side - dilatacao, cel_side + 2*dilatacao, cel_side + 2*dilatacao);
         map[i][j] = true;
         for (Line l : lines) {
           if (l.intersects(rect)) {
@@ -53,27 +59,30 @@ public class Thickening {
   }
 
   private static LinkedList<Pos> findPath (Pos start, Pos goal) {
-    int[][] map = new int[passable.length][passable[0].length];
+    int width = passable.length;
+    int height = passable[0].length;
+    int[][] map = new int[width][height];
     ArrayDeque<Pos> q = new ArrayDeque<Pos>();
     LinkedList<Pos> path = new LinkedList<Pos>();
     Pos pos = null;
     int x, y, dist;
     if (!passable[start.x()][start.y()]) return null;
-    for (int i = 0; i < passable.length; i++) {
-      for (int j = 0; j < passable[0].length; j++) {
+    for (int i = 0; i < width; i++) {
+      for (int j = 0; j < height; j++) {
         map[i][j] = -1;
       }
     }
     /* Busca em largura */
     q.addFirst(start);
     map[start.x()][start.y()] = 0;
-    System.out.println("" + start.x() + ' ' + start.y());
     while (!q.isEmpty()) {
       pos = q.removeLast();
       x = pos.x();
       y = pos.y();
       dist = map[x][y];
-      if (x+1 < passable.length && map[x+1][y] == -1 && passable[x+1][y]) {
+      if (x+1 < width)
+       if ( map[x+1][y] == -1)
+        if ( passable[x+1][y]) {
         map[x+1][y] = dist + 1;
         q.addFirst(new Pos(x+1, y));
       }
@@ -81,7 +90,7 @@ public class Thickening {
         map[x-1][y] = dist + 1;
         q.addFirst(new Pos(x-1, y));
       }
-      if (y+1 < passable[0].length && map[x][y+1] == -1 && passable[x][y+1]) {
+      if (y+1 < height && map[x][y+1] == -1 && passable[x][y+1]) {
         map[x][y+1] = dist + 1;
         q.addFirst(new Pos(x, y+1));
       }
@@ -93,15 +102,10 @@ public class Thickening {
         break;
       }
     }
-    // for (int i = 0; i < passable.length; i++){
-    //   for (int j = 0; j < passable[0].length; j++) {
-    //     System.out.print ("\t"+map[i][j]);
-    //   }
-    //   System.out.println();
-    // }
     /* Acha o caminho */
     if (!pos.isEqual (goal)) {
       // Não tem caminho
+      System.out.println("Não tem caminho");
       return null;
     }
     pos = goal;
@@ -109,6 +113,8 @@ public class Thickening {
       path.addFirst(pos);
       pos = bestNeighbor(pos, map);
     }
+    path.addFirst (start);
+    desenha(map, lineariza(path));//(LinkedList<Pos>)path.clone());
     return path;
   }
 
@@ -127,7 +133,9 @@ public class Thickening {
     best = neighbors[0];
     bestValue = map[current.x()][current.y()];
     for (int i = 0; i < 8; i++) {
-      if (neighbors[i].x() >= 0 && neighbors[i].y() >= 0) {
+      int neix = neighbors[i].x();
+      int neiy = neighbors[i].y();
+      if (neix >= 0 && neiy >= 0 && neix < map.length && neiy < map[0].length) {
         int neighborvalue = map[neighbors[i].x()][neighbors[i].y()];
         if (neighborvalue > -1 && neighborvalue < bestValue) {
           best = neighbors[i];
@@ -138,14 +146,46 @@ public class Thickening {
     return best;
   }
 
+  private static LinkedList<Pos> lineariza (LinkedList<Pos> path) {
+    Pos p, q, old_q = null;
+    LinkedList<Pos> linearPath = new LinkedList<Pos>();
+    boolean intercepta = false;
+    p = path.removeFirst();
+    linearPath.addLast(p);
+    while (!path.isEmpty()) {
+      q = p;
+      intercepta = false;
+      while (!intercepta) {
+        old_q = q;
+        if (path.isEmpty()) {
+          linearPath.addLast(old_q);
+          return linearPath;
+        }
+        q = path.removeFirst();
+        Line pq = new Line (p.x(), p.y(), q.x(), q.y());
+        for (int i = 0; i < passable.length; i++) {
+          for (int j = 0; j < passable[0].length; j++) {
+            Rectangle rect = new Rectangle (i + 0.00005f - dilatacao/cel_side, j + 0.00005f - dilatacao/cel_side, 0.9999f + 2f*dilatacao/cel_side, 0.9999f + 2f*dilatacao/cel_side);
+            if (pq.intersects(rect) && !passable[i][j]) {
+              intercepta = true;
+            }
+          }
+        }
+      }
+      p = q;
+      // path.addFirst(q);
+      linearPath.addLast(p);
+    }
+    return linearPath;
+  }
+
   public static void main (String[] args) {
-    int altura = 916, largura = 1182, cel_side = 50, dilatacao, x, y;
     MasterNav master = new MasterNav();
     LinkedList<Pos> path;
     Pos start, goal;
     Scanner scan = new Scanner( System.in );
     float ret;
-    master.connect();
+    // master.connect();
 
     System.out.println("Qual a largura do mapa (em mm)?");
     largura = scan.nextInt();
@@ -153,9 +193,11 @@ public class Thickening {
     altura = scan.nextInt();
     System.out.println("Qual o lado de cada célula de ocupação (em mm)?");
     cel_side = scan.nextInt();
-    System.out.println("Qual a dilatação (em mm)?");
-    dilatacao = scan.nextInt();
-    passable = criamapa (altura, largura, cel_side, dilatacao);
+    if (THICKENING) {
+      System.out.println("Qual a dilatação (em mm)?");
+      dilatacao = scan.nextInt();
+    }
+    passable = criamapa ();
 
     System.out.println("Qual a posição X inicial (em mm)?");
     x = scan.nextInt() / cel_side;
@@ -168,16 +210,53 @@ public class Thickening {
     y = scan.nextInt() / cel_side;
     goal = new Pos (x, y);
 
-    master.sendCommand (SET_START, start.x()/10, start.y()/10);
+    // master.sendCommand (SET_START, start.x()/10, start.y()/10);
 
     path = findPath(start, goal);
-    if (path != null) {
+
+    if (path != null && !path.isEmpty()) {
+      if (LINEARIZA)
+        path = lineariza(path);
       while (!path.isEmpty()) {
         Pos pos = path.removeFirst();
-        ret = master.sendCommand(ADD_POINT, pos.x()/10f, pos.y()/10f);
+        // ret = master.sendCommand(ADD_POINT, pos.x()*cel_side/10f, pos.y()*cel_side/10f);
       }
-      ret = master.sendCommand(TRAVEL_PATH, -1, -1);
-      master.close();
+      // ret = master.sendCommand(TRAVEL_PATH, -1, -1);
+      // master.close();
+    }
+  }
+
+  static void desenha (int[][] mapa, LinkedList<Pos> caminho) {
+    int i, j, max = 0;
+    for(i = 0; i < mapa.length; i++) {
+      for(j = 0; j < mapa[0].length; j++) {
+        if (mapa[i][j] > max) max = mapa[i][j];
+      }
+    }
+    StdDraw.setCanvasSize( 512, (int) 512*mapa[0].length/mapa.length);
+    StdDraw.setXscale((double) 0, (double) mapa.length);
+    StdDraw.setYscale((double) 0, (double) mapa[0].length);
+
+    for(i = 0; i < mapa.length; i++) {
+      for(j = 0; j < mapa[0].length; j++) {
+        if(mapa[i][j] > -1)
+          StdDraw.setPenColor(255 - mapa[i][j]*255/max, 200 - mapa[i][j]*200/max, 100 - mapa[i][j]*100/max);
+        else if (!passable[i][j])
+          StdDraw.setPenColor(StdDraw.WHITE);
+        else
+          StdDraw.setPenColor(StdDraw.BLACK);
+
+       StdDraw.filledSquare(i + 0.5, j + 0.5, 0.5);
+      }
+    }
+    StdDraw.setPenColor(StdDraw.RED);
+    Pos pos;
+    Pos lastpos = caminho.getFirst();
+    while (!caminho.isEmpty()) {
+      pos = caminho.removeFirst();
+     StdDraw.filledSquare(pos.x() + 0.5, pos.y() + 0.5, 0.5);
+      StdDraw.line (pos.x() + 0.5, pos.y() + 0.5, lastpos.x() + 0.5, lastpos.y() + 0.5);
+      lastpos = pos;
     }
   }
 }
