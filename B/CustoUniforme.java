@@ -62,15 +62,15 @@ public class CustoUniforme {
           }
         }
         if (passable) {
-          G.addEdge(i,j, distSquare(p1, p2));
+          G.addEdge(i,j, dist(p1, p2));
         }
       }
     }
     return G;
   }
 
-  private static double distSquare (Point p1, Point p2) {
-    return (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y);
+  private static double dist (Point p1, Point p2) {
+    return Math.sqrt()(p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
   }
 
   public static int[] findPath (int[] spt, int w) {

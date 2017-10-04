@@ -42,7 +42,7 @@ public class MasterNav {
 
 	public void connect() {
 		try {
-		 	NXTComm nxtComm = NXTCommFactory.createNXTComm(NXTCommFactory.USB);
+			NXTComm nxtComm = NXTCommFactory.createNXTComm(NXTCommFactory.USB);
 			/* Uncomment next line for Bluetooth communication */
 			// NXTComm nxtComm = NXTCommFactory.createNXTComm(NXTCommFactory.BLUETOOTH);
 			NXTInfo[] nxtInfo = nxtComm.search(MasterNav.NXT_ID);

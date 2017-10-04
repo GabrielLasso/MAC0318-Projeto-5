@@ -7,10 +7,7 @@ import java.util.NoSuchElementException;
 import java.util.ArrayDeque;
 import lejos.nxt.Button;
 
-public class FrenteDeOnda {
-
-  static final boolean LINEARIZA = false;
-  static final boolean THICKENING = true;
+public class C {
 
   static boolean[][] passable;
   private static final byte ADD_POINT = 0; //adds waypoint to path
@@ -19,6 +16,7 @@ public class FrenteDeOnda {
 	private static final byte SET_START = 3; // set initial waypoint
 	private static final byte STOP = 4; // closes communication
   static int altura = 916, largura = 1182, cel_side = 50, x, y, dilatacao = 0;
+  static int[][] map;
 
   static final Line[] lines = {
     /* L-shape polygon */
@@ -61,11 +59,11 @@ public class FrenteDeOnda {
   private static LinkedList<Pos> findPath (Pos start, Pos goal) {
     int width = passable.length;
     int height = passable[0].length;
-    int[][] map = new int[width][height];
     ArrayDeque<Pos> q = new ArrayDeque<Pos>();
     LinkedList<Pos> path = new LinkedList<Pos>();
     Pos pos = null;
     int x, y, dist;
+    map = new int[width][height];
     if (!passable[start.x()][start.y()]) return null;
     for (int i = 0; i < width; i++) {
       for (int j = 0; j < height; j++) {
@@ -114,7 +112,6 @@ public class FrenteDeOnda {
       pos = bestNeighbor(pos, map);
     }
     path.addFirst (start);
-    desenha(map, lineariza(path));//(LinkedList<Pos>)path.clone());
     return path;
   }
 
@@ -185,7 +182,9 @@ public class FrenteDeOnda {
     Pos start, goal;
     Scanner scan = new Scanner( System.in );
     float ret;
-    // master.connect();
+    char c;
+    boolean linear = false;
+    master.connect();
 
     System.out.println("Qual a largura do mapa (em mm)?");
     largura = scan.nextInt();
@@ -193,10 +192,8 @@ public class FrenteDeOnda {
     altura = scan.nextInt();
     System.out.println("Qual o lado de cada célula de ocupação (em mm)?");
     cel_side = scan.nextInt();
-    if (THICKENING) {
-      System.out.println("Qual a dilatação (em mm)?");
-      dilatacao = scan.nextInt();
-    }
+    System.out.println("Qual a dilatação (em mm)?");
+    dilatacao = scan.nextInt();
     passable = criamapa ();
 
     System.out.println("Qual a posição X inicial (em mm)?");
@@ -210,37 +207,42 @@ public class FrenteDeOnda {
     y = scan.nextInt() / cel_side;
     goal = new Pos (x, y);
 
-    // master.sendCommand (SET_START, start.x()/10, start.y()/10);
+    System.out.println("Lineariza a trajetória? (S/N)");
+    c = scan.next().charAt(0);
+    if (Character.toUpperCase(c) == 'S') linear = true;
+
+    master.sendCommand (SET_START, start.x()/10, start.y()/10);
 
     path = findPath(start, goal);
 
     if (path != null && !path.isEmpty()) {
-      if (LINEARIZA)
+      if (linear)
         path = lineariza(path);
+      desenha((LinkedList<Pos>)path.clone());
       while (!path.isEmpty()) {
         Pos pos = path.removeFirst();
-        // ret = master.sendCommand(ADD_POINT, pos.x()*cel_side/10f, pos.y()*cel_side/10f);
+        ret = master.sendCommand(ADD_POINT, pos.x()*cel_side/10f, pos.y()*cel_side/10f);
       }
-      // ret = master.sendCommand(TRAVEL_PATH, -1, -1);
-      // master.close();
+      ret = master.sendCommand(TRAVEL_PATH, -1, -1);
+      master.close();
     }
   }
 
-  static void desenha (int[][] mapa, LinkedList<Pos> caminho) {
+  static void desenha (LinkedList<Pos> caminho) {
     int i, j, max = 0;
-    for(i = 0; i < mapa.length; i++) {
-      for(j = 0; j < mapa[0].length; j++) {
-        if (mapa[i][j] > max) max = mapa[i][j];
+    for(i = 0; i < map.length; i++) {
+      for(j = 0; j < map[0].length; j++) {
+        if (map[i][j] > max) max = map[i][j];
       }
     }
-    StdDraw.setCanvasSize( 512, (int) 512*mapa[0].length/mapa.length);
-    StdDraw.setXscale((double) 0, (double) mapa.length);
-    StdDraw.setYscale((double) 0, (double) mapa[0].length);
+    StdDraw.setCanvasSize( 512, (int) 512*map[0].length/map.length);
+    StdDraw.setXscale((double) 0, (double) map.length);
+    StdDraw.setYscale((double) 0, (double) map[0].length);
 
-    for(i = 0; i < mapa.length; i++) {
-      for(j = 0; j < mapa[0].length; j++) {
-        if(mapa[i][j] > -1)
-          StdDraw.setPenColor(255 - mapa[i][j]*255/max, 200 - mapa[i][j]*200/max, 100 - mapa[i][j]*100/max);
+    for(i = 0; i < map.length; i++) {
+      for(j = 0; j < map[0].length; j++) {
+        if(map[i][j] > -1)
+          StdDraw.setPenColor(255 - map[i][j]*255/max, 200 - map[i][j]*200/max, 100 - map[i][j]*100/max);
         else if (!passable[i][j])
           StdDraw.setPenColor(StdDraw.WHITE);
         else

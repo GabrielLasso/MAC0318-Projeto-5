@@ -16,9 +16,9 @@ public class SlaveNav {
 	private static final byte STOP = 4; // closes communication
 
 	public static void main(String[] args) throws Exception {
-		// USBConnection btc = USB.waitForConnection(); /* USB communication */
+		USBConnection btc = USB.waitForConnection(); /* USB communication */
 		/* Uncomment next line for Bluetooth */
-		BTConnection btc = Bluetooth.waitForConnection();
+		// BTConnection btc = Bluetooth.waitForConnection();
 		DataInputStream dis = btc.openDataInputStream();
 		DataOutputStream dos = btc.openDataOutputStream();
 
