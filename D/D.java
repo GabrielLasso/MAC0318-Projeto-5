@@ -15,8 +15,8 @@ public class D {
   private static final byte STOP = 4; // closes communication
 
   static int dilatacao = 20;
-  static ArrayList<Line> lines;
-  static final Line[] walls = {
+  static ArrayList<Line> wall;
+  static final Line[] lines = {
     /* L-shape polygon */
     new Line(170,437,60,680),
     new Line(60,680,398,800),
@@ -39,10 +39,7 @@ public class D {
   private static void criaParedes () {
     double epsilon = 50.0;
     ArrayList<Line> newLines = new ArrayList<Line> ();
-    ArrayList<Line> fecha = new ArrayList<Line> ();
-    lines = new ArrayList<Line>();
-    for (int i = 0; i < walls.length; i++)
-      lines.add (walls[i]);
+    wall = new ArrayList<Line>();
 
     for (Line l : lines) {
       int x1 = (int) l.x1;
@@ -57,36 +54,34 @@ public class D {
                              x2 + (int)normal[0], y2 + (int)normal[1]);
       Line newL2 = new Line (x1 - (int)normal[0], y1 - (int)normal[1],
                              x2 - (int)normal[0], y2 - (int)normal[1]);
-      newLines.add(newL1);
-      newLines.add(newL2);
+      wall.add(newL1);
+      wall.add(newL2);
     }
 
-    for (Line l1 : newLines) {
-      for (Line l2 : newLines) {
+    for (Line l1 : wall) {
+      for (Line l2 : wall) {
         Point p11, p12, p21, p22;
         p11 = l1.getP1();
         p12 = l1.getP2();
         p21 = l2.getP1();
         p22 = l2.getP2();
         if (dist (p11, p21) < epsilon) {
-          fecha.add (new Line (p11.x, p11.y, p21.x, p21.y));
+          newLines.add (new Line (p11.x, p11.y, p21.x, p21.y));
         }
         if (dist (p11, p22) < epsilon) {
-          fecha.add (new Line (p11.x, p11.y, p22.x, p22.y));
+          newLines.add (new Line (p11.x, p11.y, p22.x, p22.y));
         }
         if (dist (p12, p21) < epsilon) {
-          fecha.add (new Line (p12.x, p12.y, p21.x, p21.y));
+          newLines.add (new Line (p12.x, p12.y, p21.x, p21.y));
         }
         if (dist (p12, p22) < epsilon) {
-          fecha.add (new Line (p12.x, p12.y, p22.x, p22.y));
+          newLines.add (new Line (p12.x, p12.y, p22.x, p22.y));
         }
       }
     }
 
     for (Line l : newLines)
-      lines.add (l);
-    for (Line l : fecha)
-      lines.add (l);
+      wall.add (l);
   }
 
   private static Graph criaGrafo (Point start, Point goal) {
@@ -94,10 +89,10 @@ public class D {
     G.addNode (start);
     G.addNode (goal);
 
-    for (int i = 0; i < lines.size(); i++) {
-      Line l1 = lines.get(i);
-      for (int j = i+1; j < lines.size(); j++) {
-        Line l2 = lines.get(j);
+    for (int i = 0; i < wall.size(); i++) {
+      Line l1 = wall.get(i);
+      for (int j = i+1; j < wall.size(); j++) {
+        Line l2 = wall.get(j);
         Point p = l1.intersectsAt (l2);
         if (p != null) {
           G.addNode(p.x, p.y);
@@ -110,10 +105,11 @@ public class D {
       for (int j = i+1; j < G.V(); j++) {
         Point p2 = G.getPoint (j);
         boolean passable = true;
-        for (int k = 0; k < lines.size(); k++) {
+        for (int w = 1; w < wall.size(); w++) {
+          Line l = wall.get(w);
           Line p1p2 = new Line (p1.x, p1.y, p2.x, p2.y);
-          Point inter = lines.get(k).intersectsAt(p1p2);
-          if (inter != null && inter != p1 && inter != p2) {
+          Point inter = l.intersectsAt(p1p2);
+          if ((inter != null && (inter.x != p1.x || inter.y != p1.y) && (inter.x != p2.x || inter.y != p2.y)) || (w < 2*lines.length && lines[w/2].intersectsAt(p1p2) != null)) {
             passable = false;
           }
         }
@@ -183,11 +179,11 @@ public class D {
     StdDraw.setXscale(0.0, 1182.0);
     StdDraw.setYscale(0.0, 916.0);
     
-    for (Line l : lines) {
+    for (Line l : wall) {
       StdDraw.line (l.x1, l.y1, l.x2, l.y2);
     }
 
-    StdDraw.setPenColor (StdDraw.RED);
+    StdDraw.setPenColor (StdDraw.GRAY);
 
     for (i = 0; i < mapa.V(); i++) {
       for (Graph.Edge e : mapa.adj(i)) {
