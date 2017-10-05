@@ -9,12 +9,12 @@ import lejos.nxt.Button;
 public class D {
   static Graph mapa;
   private static final byte ADD_POINT = 0; //adds waypoint to path
-	private static final byte TRAVEL_PATH = 1; // enables slave to execute the path
-	private static final byte STATUS = 2; // enquires about slave's position
-	private static final byte SET_START = 3; // set initial waypoint
-	private static final byte STOP = 4; // closes communication
+  private static final byte TRAVEL_PATH = 1; // enables slave to execute the path
+  private static final byte STATUS = 2; // enquires about slave's position
+  private static final byte SET_START = 3; // set initial waypoint
+  private static final byte STOP = 4; // closes communication
 
-  static int dilatacao = 50;
+  static int dilatacao = 20;
   static ArrayList<Line> lines;
   static final Line[] walls = {
     /* L-shape polygon */
@@ -49,12 +49,14 @@ public class D {
       int x2 = (int) l.x2;
       int y1 = (int) l.y1;
       int y2 = (int) l.y2;
-      double[] normal = {x1-x2, y2-y1};
-      double modulo = Math.sqrt ((x1-x2) * (x1-x2) + (y2-y1) * (y2-y1));
-      Line newL1 = new Line (x1 + (int)(dilatacao * normal[0]/modulo), y1 + (int)(dilatacao * normal[0]/modulo),
-                            x2 + (int)(dilatacao * normal[0]/modulo), y2 + (int)(dilatacao * normal[0]/modulo));
-      Line newL2 = new Line (x1 - (int)(dilatacao * normal[0]/modulo), y1 - (int)(dilatacao * normal[0]/modulo),
-                            x2 - (int)(dilatacao * normal[0]/modulo), y2 - (int)(dilatacao * normal[0]/modulo));
+      double[] normal = {y2-y1, x1-x2};
+      double modulo = Math.sqrt (normal[0]*normal[0] + normal[1]*normal[1]);
+      normal[0] = normal[0] * dilatacao / modulo;
+      normal[1] = normal[1] * dilatacao / modulo;
+      Line newL1 = new Line (x1 + (int)normal[0], y1 + (int)normal[1],
+                             x2 + (int)normal[0], y2 + (int)normal[1]);
+      Line newL2 = new Line (x1 - (int)normal[0], y1 - (int)normal[1],
+                             x2 - (int)normal[0], y2 - (int)normal[1]);
       newLines.add(newL1);
       newLines.add(newL2);
     }
@@ -75,7 +77,6 @@ public class D {
         if (dist (p12, p21) < epsilon) {
           fecha.add (new Line (p12.x, p12.y, p21.x, p21.y));
         }
-
         if (dist (p12, p22) < epsilon) {
           fecha.add (new Line (p12.x, p12.y, p22.x, p22.y));
         }
@@ -100,7 +101,6 @@ public class D {
         Point p = l1.intersectsAt (l2);
         if (p != null) {
           G.addNode(p.x, p.y);
-          System.out.println (G.V() + " " + p.x + " " + p.y);
         }
       }
     }
@@ -112,12 +112,12 @@ public class D {
         boolean passable = true;
         for (int k = 0; k < lines.size(); k++) {
           Line p1p2 = new Line (p1.x, p1.y, p2.x, p2.y);
-          if (lines.get(k).intersectsAt(p1p2) != null) {
+          Point inter = lines.get(k).intersectsAt(p1p2);
+          if (inter != null && inter != p1 && inter != p2) {
             passable = false;
           }
         }
         if (passable) {
-          System.out.println (p1.x + " " + p1.y + " " + p2.x + " " + p2.y);
           G.addEdge(i,j, dist(p1, p2));
         }
       }
@@ -150,7 +150,7 @@ public class D {
     int i, v, x, y;
     Point start, goal;
     float ret;
-    master.connect();
+//    master.connect();
     System.out.println("Qual a posição X inicial (em mm)?");
     x = scan.nextInt();
     System.out.println("Qual a posição Y inicial (em mm)?");
@@ -163,18 +163,39 @@ public class D {
     goal = new Point (x, y);
     criaParedes();
     mapa = criaGrafo(start, goal);
-    ret = master.sendCommand (SET_START, start.x/10, start.y/10);
+//    ret = master.sendCommand (SET_START, start.x/10, start.y/10);
     spt = mapa.spt(0);
     path = findPath(spt, 1);
-    for (i = 1; i < path.length; i++) {
-      ret = master.sendCommand(ADD_POINT, mapa.getPoint(path[i]).x/10, mapa.getPoint(path[i]).y/10);
-      // System.out.println("ponto: " + (path[i] + 1) + " X: " + points[path[i]].x/10 + " Y: " + points[path[i]].y/10 +" return: " + ret);
-    }
-    System.out.print("3... 2... 1... ");
-    ret = master.sendCommand(TRAVEL_PATH, -1, -1);
-    System.out.println("GO!");
-    Button.waitForAnyPress();
-    master.close();
+    desenha();
+//    for (i = 1; i < path.length; i++) {
+//      ret = master.sendCommand(ADD_POINT, mapa.getPoint(path[i]).x/10, mapa.getPoint(path[i]).y/10);
+//    }
+//    System.out.print("3... 2... 1... ");
+//    ret = master.sendCommand(TRAVEL_PATH, -1, -1);
+//    System.out.println("GO!");
+//    Button.waitForAnyPress();
+//    master.close();
 
+  }
+  static void desenha () {
+    int i;
+    StdDraw.setCanvasSize(512, 500);
+    StdDraw.setXscale(0.0, 1182.0);
+    StdDraw.setYscale(0.0, 916.0);
+    
+    for (Line l : lines) {
+      StdDraw.line (l.x1, l.y1, l.x2, l.y2);
+    }
+
+    StdDraw.setPenColor (StdDraw.RED);
+
+    for (i = 0; i < mapa.V(); i++) {
+      for (Graph.Edge e : mapa.adj(i)) {
+        Point p1, p2;
+        p1 = mapa.getPoint (e.v());
+        p2 = mapa.getPoint (e.w());
+        StdDraw.line (p1.x, p1.y, p2.x, p2.y);
+      }
+    }
   }
 }
