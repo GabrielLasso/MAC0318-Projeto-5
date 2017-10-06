@@ -15,8 +15,8 @@ public class D {
   private static final byte STOP = 4; // closes communication
 
   static int[] path;
-  static int dilatacao = 20;
-  static double epsilon = 50.0;
+  static int dilatacao = 50;
+  static double epsilon = 100.0;
   static ArrayList<Line> visibilityLines;
   static ArrayList<Line> lines;
   static final Line[] walls = {
@@ -64,8 +64,8 @@ public class D {
       int y2 = (int) l.y2;
       double[] normal = {y2-y1, x1-x2};
       double modulo = Math.sqrt (normal[0]*normal[0] + normal[1]*normal[1]);
-      normal[0] = normal[0] * (dilatacao-1) / modulo;
-      normal[1] = normal[1] * (dilatacao-1) / modulo;
+      normal[0] = normal[0] * (dilatacao) / (1.1*modulo);
+      normal[1] = normal[1] * (dilatacao) / (1.1*modulo);
       Line newL1 = new Line (x1 + (int)normal[0], y1 + (int)normal[1],
                              x2 + (int)normal[0], y2 + (int)normal[1]);
       Line newL2 = new Line (x1 - (int)normal[0], y1 - (int)normal[1],
@@ -156,13 +156,26 @@ public class D {
     G.addNode (start);
     G.addNode (goal);
 
+    for (Line l : visibilityLines) {
+      Point p1 = l.getP1();
+      Point p2 = l.getP2();
+      G.addNode(p1.x, p1.y);
+      G.addNode(p2.x, p2.y);
+    }
+
     for (int i = 0; i < visibilityLines.size(); i++) {
       Line l1 = visibilityLines.get(i);
       for (int j = i+1; j < visibilityLines.size(); j++) {
         Line l2 = visibilityLines.get(j);
         Point p = l1.intersectsAt (l2);
         if (p != null) {
-          G.addNode(p.x, p.y);
+          boolean add = true;
+          for (int k = 0; k < G.V(); k++) {
+            if (dist (G.getPoint(k), p) < 10)
+              add = false;
+          }
+          if (add)
+            G.addNode(p.x, p.y);
         }
       }
     }

@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import lejos.nxt.Button;
 
-public class CustoUniforme {
+public class B {
   static Graph mapa;
   private static final byte ADD_POINT = 0; //adds waypoint to path
 	private static final byte TRAVEL_PATH = 1; // enables slave to execute the path
@@ -70,7 +70,7 @@ public class CustoUniforme {
   }
 
   private static double dist (Point p1, Point p2) {
-    return Math.sqrt()(p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
+    return Math.sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
   }
 
   public static int[] findPath (int[] spt, int w) {

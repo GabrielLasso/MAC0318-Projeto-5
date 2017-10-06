@@ -211,19 +211,21 @@ public class C {
     c = scan.next().charAt(0);
     if (Character.toUpperCase(c) == 'S') linear = true;
 
-    master.sendCommand (SET_START, start.x()/10, start.y()/10);
-
     path = findPath(start, goal);
+
+    master.sendCommand (SET_START, (start.x()*cel_side)/10f, (start.y()*cel_side)/10f);
+    System.out.println ((start.x()*cel_side)/10f + " " + (start.y()*cel_side)/10f);
 
     if (path != null && !path.isEmpty()) {
       if (linear)
         path = lineariza(path);
-      desenha((LinkedList<Pos>)path.clone());
       while (!path.isEmpty()) {
         Pos pos = path.removeFirst();
+        System.out.println(pos.x()*cel_side/10f + " " + pos.y()*cel_side/10f);
         ret = master.sendCommand(ADD_POINT, pos.x()*cel_side/10f, pos.y()*cel_side/10f);
       }
       ret = master.sendCommand(TRAVEL_PATH, -1, -1);
+      desenha((LinkedList<Pos>)path.clone());
       master.close();
     }
   }
