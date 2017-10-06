@@ -14,9 +14,12 @@ public class D {
   private static final byte SET_START = 3; // set initial waypoint
   private static final byte STOP = 4; // closes communication
 
+  static int[] path;
   static int dilatacao = 20;
-  static ArrayList<Line> wall;
-  static final Line[] lines = {
+  static double epsilon = 50.0;
+  static ArrayList<Line> visibilityLines;
+  static ArrayList<Line> lines;
+  static final Line[] walls = {
     /* L-shape polygon */
     new Line(170,437,60,680),
     new Line(60,680,398,800),
@@ -36,12 +39,42 @@ public class D {
     new Line(480,525,335,345)
   };
 
-  private static void criaParedes () {
-    double epsilon = 50.0;
-    ArrayList<Line> newLines = new ArrayList<Line> ();
-    wall = new ArrayList<Line>();
+  static boolean mesmaLine (Line l1, Line l2) {
+    Point p11, p12, p21, p22;
+    p11 = l1.getP1();
+    p12 = l1.getP2();
+    p21 = l2.getP1();
+    p22 = l2.getP2();
+    if (p11.x == p21.x && p11.y == p21.y && p12.x == p22.x && p12.y == p22.y)
+      return true;
+    if (p12.x == p21.x && p12.y == p21.y && p11.x == p22.x && p11.y == p22.y)
+      return true;
+    return false;
+  }
 
-    for (Line l : lines) {
+  private static void criaParedes () {
+    ArrayList<Line> newLines;
+    visibilityLines = new ArrayList<Line>();
+    lines = new ArrayList<Line>();
+
+    for (Line l : walls) {
+      int x1 = (int) l.x1;
+      int x2 = (int) l.x2;
+      int y1 = (int) l.y1;
+      int y2 = (int) l.y2;
+      double[] normal = {y2-y1, x1-x2};
+      double modulo = Math.sqrt (normal[0]*normal[0] + normal[1]*normal[1]);
+      normal[0] = normal[0] * (dilatacao-1) / modulo;
+      normal[1] = normal[1] * (dilatacao-1) / modulo;
+      Line newL1 = new Line (x1 + (int)normal[0], y1 + (int)normal[1],
+                             x2 + (int)normal[0], y2 + (int)normal[1]);
+      Line newL2 = new Line (x1 - (int)normal[0], y1 - (int)normal[1],
+                             x2 - (int)normal[0], y2 - (int)normal[1]);
+      lines.add(newL1);
+      lines.add(newL2);
+    }
+
+    for (Line l : walls) {
       int x1 = (int) l.x1;
       int x2 = (int) l.x2;
       int y1 = (int) l.y1;
@@ -54,34 +87,68 @@ public class D {
                              x2 + (int)normal[0], y2 + (int)normal[1]);
       Line newL2 = new Line (x1 - (int)normal[0], y1 - (int)normal[1],
                              x2 - (int)normal[0], y2 - (int)normal[1]);
-      wall.add(newL1);
-      wall.add(newL2);
+      visibilityLines.add(newL1);
+      visibilityLines.add(newL2);
     }
 
-    for (Line l1 : wall) {
-      for (Line l2 : wall) {
-        Point p11, p12, p21, p22;
-        p11 = l1.getP1();
-        p12 = l1.getP2();
-        p21 = l2.getP1();
-        p22 = l2.getP2();
-        if (dist (p11, p21) < epsilon) {
-          newLines.add (new Line (p11.x, p11.y, p21.x, p21.y));
-        }
-        if (dist (p11, p22) < epsilon) {
-          newLines.add (new Line (p11.x, p11.y, p22.x, p22.y));
-        }
-        if (dist (p12, p21) < epsilon) {
-          newLines.add (new Line (p12.x, p12.y, p21.x, p21.y));
-        }
-        if (dist (p12, p22) < epsilon) {
-          newLines.add (new Line (p12.x, p12.y, p22.x, p22.y));
+    newLines = new ArrayList<Line> ();
+
+    for (Line l1 : lines) {
+      for (Line l2 : lines) {
+        if (!mesmaLine(l1,l2)) {
+          Point p11, p12, p21, p22;
+          p11 = l1.getP1();
+          p12 = l1.getP2();
+          p21 = l2.getP1();
+          p22 = l2.getP2();
+          if (dist (p11, p21) < epsilon) {
+            newLines.add (new Line (p11.x, p11.y, p21.x, p21.y));
+          }
+          if (dist (p11, p22) < epsilon) {
+            newLines.add (new Line (p11.x, p11.y, p22.x, p22.y));
+          }
+          if (dist (p12, p21) < epsilon) {
+            newLines.add (new Line (p12.x, p12.y, p21.x, p21.y));
+          }
+          if (dist (p12, p22) < epsilon) {
+            newLines.add (new Line (p12.x, p12.y, p22.x, p22.y));
+          }
         }
       }
     }
 
     for (Line l : newLines)
-      wall.add (l);
+      lines.add (l);
+
+    newLines = new ArrayList<Line> ();
+
+
+    for (Line l1 : visibilityLines) {
+      for (Line l2 : visibilityLines) {
+        if (!mesmaLine(l1,l2)) {
+          Point p11, p12, p21, p22;
+          p11 = l1.getP1();
+          p12 = l1.getP2();
+          p21 = l2.getP1();
+          p22 = l2.getP2();
+          if (dist (p11, p21) < epsilon) {
+            newLines.add (new Line (p11.x, p11.y, p21.x, p21.y));
+          }
+          if (dist (p11, p22) < epsilon) {
+            newLines.add (new Line (p11.x, p11.y, p22.x, p22.y));
+          }
+          if (dist (p12, p21) < epsilon) {
+            newLines.add (new Line (p12.x, p12.y, p21.x, p21.y));
+          }
+          if (dist (p12, p22) < epsilon) {
+            newLines.add (new Line (p12.x, p12.y, p22.x, p22.y));
+          }
+        }
+      }
+    }
+
+    for (Line l : newLines)
+      visibilityLines.add (l);
   }
 
   private static Graph criaGrafo (Point start, Point goal) {
@@ -89,10 +156,10 @@ public class D {
     G.addNode (start);
     G.addNode (goal);
 
-    for (int i = 0; i < wall.size(); i++) {
-      Line l1 = wall.get(i);
-      for (int j = i+1; j < wall.size(); j++) {
-        Line l2 = wall.get(j);
+    for (int i = 0; i < visibilityLines.size(); i++) {
+      Line l1 = visibilityLines.get(i);
+      for (int j = i+1; j < visibilityLines.size(); j++) {
+        Line l2 = visibilityLines.get(j);
         Point p = l1.intersectsAt (l2);
         if (p != null) {
           G.addNode(p.x, p.y);
@@ -105,11 +172,10 @@ public class D {
       for (int j = i+1; j < G.V(); j++) {
         Point p2 = G.getPoint (j);
         boolean passable = true;
-        for (int w = 1; w < wall.size(); w++) {
-          Line l = wall.get(w);
+        for (Line l : lines) {
           Line p1p2 = new Line (p1.x, p1.y, p2.x, p2.y);
           Point inter = l.intersectsAt(p1p2);
-          if ((inter != null && (inter.x != p1.x || inter.y != p1.y) && (inter.x != p2.x || inter.y != p2.y)) || (w < 2*lines.length && lines[w/2].intersectsAt(p1p2) != null)) {
+          if ((inter != null)){
             passable = false;
           }
         }
@@ -142,11 +208,11 @@ public class D {
   public static void main (String[] args) {
     MasterNav master = new MasterNav();
     Scanner scan = new Scanner( System.in );
-    int[] path, spt;
+    int[] spt;
     int i, v, x, y;
     Point start, goal;
     float ret;
-//    master.connect();
+    master.connect();
     System.out.println("Qual a posição X inicial (em mm)?");
     x = scan.nextInt();
     System.out.println("Qual a posição Y inicial (em mm)?");
@@ -159,27 +225,29 @@ public class D {
     goal = new Point (x, y);
     criaParedes();
     mapa = criaGrafo(start, goal);
-//    ret = master.sendCommand (SET_START, start.x/10, start.y/10);
     spt = mapa.spt(0);
     path = findPath(spt, 1);
+    master.sendCommand (SET_START, start.x/10f, start.y/10f);
+    for (i = 0; i < path.length; i++) {
+      master.sendCommand(ADD_POINT, mapa.getPoint(path[i]).x/10f, mapa.getPoint(path[i]).y/10f);
+    }
+    master.sendCommand(TRAVEL_PATH, -1, -1);
     desenha();
-//    for (i = 1; i < path.length; i++) {
-//      ret = master.sendCommand(ADD_POINT, mapa.getPoint(path[i]).x/10, mapa.getPoint(path[i]).y/10);
-//    }
-//    System.out.print("3... 2... 1... ");
-//    ret = master.sendCommand(TRAVEL_PATH, -1, -1);
-//    System.out.println("GO!");
-//    Button.waitForAnyPress();
-//    master.close();
-
+    master.close();
   }
   static void desenha () {
     int i;
     StdDraw.setCanvasSize(512, 500);
     StdDraw.setXscale(0.0, 1182.0);
     StdDraw.setYscale(0.0, 916.0);
-    
-    for (Line l : wall) {
+
+    for (Line l : visibilityLines) {
+      StdDraw.line (l.x1, l.y1, l.x2, l.y2);
+    }
+
+    StdDraw.setPenColor (StdDraw.RED);
+
+    for (Line l : lines) {
       StdDraw.line (l.x1, l.y1, l.x2, l.y2);
     }
 
@@ -192,6 +260,15 @@ public class D {
         p2 = mapa.getPoint (e.w());
         StdDraw.line (p1.x, p1.y, p2.x, p2.y);
       }
+    }
+
+    StdDraw.setPenColor (StdDraw.BLUE);
+
+    for (i = 1; i < path.length; i++) {
+      Point p1, p2;
+      p1 = mapa.getPoint(path[i]);
+      p2 = mapa.getPoint(path[i-1]);
+      StdDraw.line (p1.x, p1.y, p2.x, p2.y);
     }
   }
 }
