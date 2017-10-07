@@ -15,8 +15,8 @@ public class D {
   private static final byte STOP = 4; // closes communication
 
   static int[] path;
-  static int dilatacao = 50;
-  static double epsilon = 100.0;
+  static int dilatacao = 20;
+  static double epsilon = 50.0;
   static ArrayList<Line> visibilityLines;
   static ArrayList<Line> lines;
   static final Line[] walls = {

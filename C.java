@@ -224,7 +224,6 @@ public class C {
         ret = master.sendCommand(ADD_POINT, pos.x()*cel_side/10f, pos.y()*cel_side/10f);
       }
       ret = master.sendCommand(TRAVEL_PATH, -1, -1);
-      // desenha((LinkedList<Pos>)path.clone());
       master.close();
     }
   }
