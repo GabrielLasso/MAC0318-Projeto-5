@@ -9,10 +9,10 @@ import lejos.nxt.Button;
 public class B {
   static Graph mapa;
   private static final byte ADD_POINT = 0; //adds waypoint to path
-	private static final byte TRAVEL_PATH = 1; // enables slave to execute the path
-	private static final byte STATUS = 2; // enquires about slave's position
-	private static final byte SET_START = 3; // set initial waypoint
-	private static final byte STOP = 4; // closes communication
+  private static final byte TRAVEL_PATH = 1; // enables slave to execute the path
+  private static final byte STATUS = 2; // enquires about slave's position
+  private static final byte SET_START = 3; // set initial waypoint
+  private static final byte STOP = 4; // closes communication
 
   static final Line[] lines = {
     /* L-shape polygon */
@@ -111,6 +111,5 @@ public class B {
     System.out.println("GO!");
     Button.waitForAnyPress();
     master.close();
-
   }
 }

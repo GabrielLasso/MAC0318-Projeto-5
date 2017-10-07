@@ -11,10 +11,10 @@ public class C {
 
   static boolean[][] passable;
   private static final byte ADD_POINT = 0; //adds waypoint to path
-	private static final byte TRAVEL_PATH = 1; // enables slave to execute the path
-	private static final byte STATUS = 2; // enquires about slave's position
-	private static final byte SET_START = 3; // set initial waypoint
-	private static final byte STOP = 4; // closes communication
+  private static final byte TRAVEL_PATH = 1; // enables slave to execute the path
+  private static final byte STATUS = 2; // enquires about slave's position
+  private static final byte SET_START = 3; // set initial waypoint
+  private static final byte STOP = 4; // closes communication
   static int altura = 916, largura = 1182, cel_side = 50, x, y, dilatacao = 0;
   static int[][] map;
 
@@ -162,7 +162,7 @@ public class C {
         Line pq = new Line (p.x(), p.y(), q.x(), q.y());
         for (int i = 0; i < passable.length; i++) {
           for (int j = 0; j < passable[0].length; j++) {
-            Rectangle rect = new Rectangle (i + 0.00005f - dilatacao/cel_side, j + 0.00005f - dilatacao/cel_side, 0.9999f + 2f*dilatacao/cel_side, 0.9999f + 2f*dilatacao/cel_side);
+            Rectangle rect = new Rectangle (i + 0.00005f, j + 0.00005f, 0.9999f, 0.9999f);
             if (pq.intersects(rect) && !passable[i][j]) {
               intercepta = true;
             }
@@ -170,8 +170,8 @@ public class C {
         }
       }
       p = q;
-      // path.addFirst(q);
-      linearPath.addLast(p);
+      linearPath.addLast(old_q);
+      old_q = q;
     }
     return linearPath;
   }
@@ -184,6 +184,7 @@ public class C {
     float ret;
     char c;
     boolean linear = false;
+
     master.connect();
 
     System.out.println("Qual a largura do mapa (em mm)?");
@@ -214,18 +215,16 @@ public class C {
     path = findPath(start, goal);
 
     master.sendCommand (SET_START, (start.x()*cel_side)/10f, (start.y()*cel_side)/10f);
-    System.out.println ((start.x()*cel_side)/10f + " " + (start.y()*cel_side)/10f);
 
     if (path != null && !path.isEmpty()) {
       if (linear)
         path = lineariza(path);
       while (!path.isEmpty()) {
         Pos pos = path.removeFirst();
-        System.out.println(pos.x()*cel_side/10f + " " + pos.y()*cel_side/10f);
         ret = master.sendCommand(ADD_POINT, pos.x()*cel_side/10f, pos.y()*cel_side/10f);
       }
       ret = master.sendCommand(TRAVEL_PATH, -1, -1);
-      desenha((LinkedList<Pos>)path.clone());
+      // desenha((LinkedList<Pos>)path.clone());
       master.close();
     }
   }
